@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Language Tutor</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #17212b; /* Цвета темы Telegram */
+            color: #fff;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+        .chat-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .message {
+            max-width: 80%;
+            padding: 10px 15px;
+            border-radius: 15px;
+            margin-bottom: 5px;
+            line-height: 1.4;
+        }
+        .bot { background: #182533; align-self: flex-start; border-bottom-left-radius: 5px; }
+        .user { background: #2b5278; align-self: flex-end; border-bottom-right-radius: 5px; }
+        .correction {
+            font-size: 12px;
+            color: #9ab6d3;
+            border-top: 1px solid #243447;
+            margin-top: 5px;
+            padding-top: 5px;
+        }
+        .input-panel {
+            display: flex;
+            padding: 10px;
+            background: #17212b;
+            border-top: 1px solid #101921;
+        }
+        input {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 20px;
+            background: #243447;
+            color: white;
+            outline: none;
+        }
+        button {
+            background: #5288c1;
+            border: none;
+            color: white;
+            padding: 0 20px;
+            margin-left: 8px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="chat-container" id="chat">
+        <div class="message bot">
+            Hello! I am your AI Tutor. Choose a topic or just say Hi to start our lesson! 😊
+        </div>
+    </div>
+
+    <div class="input-panel">
+        <input type="text" id="userInput" placeholder="Type your answer in English...">
+        <button onclick="sendMessage()">Send</button>
+    </div>
+
+    <script>
+        // Инициализируем Telegram Web App
+        const tg = window.Telegram.WebApp;
+        tg.expand(); // Расширяем приложение на весь экран
+
+        const chat = document.getElementById('chat');
+        // Сюда нужно будет вставить URL твоего запущенного Python-бэкенда
+        const BACKEND_URL = "https://твой-python-бэкенд.railway.app/chat"; 
+
+        async function sendMessage() {
+            const input = document.getElementById('userInput');
+            const text = input.value.trim();
+            if (!text) return;
+
+            // Добавляем сообщение юзера на экран
+            appendMessage(text, 'user');
+            input.value = '';
+
+            // Отправляем запрос на наш Python бэкенд
+            try {
+                const response = await fetch(BACKEND_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        text: text,
+                        user_id: tg.initDataUnsafe.user?.id || "anonymous" 
+                    })
+                });
+                const data = await response.json();
+                
+                // Добавляем ответ ИИ
+                appendMessage(data.reply, 'bot', data.correction);
+            } catch (e) {
+                appendMessage("Error connecting to server 😢", 'bot');
+            }
+        }
+
+        function appendMessage(text, sender, correction = null) {
+            const msgDiv = document.createElement('div');
+            msgDiv.className = `message ${sender}`;
+            msgDiv.innerText = text;
+
+            if (correction) {
+                const corrDiv = document.createElement('div');
+                corrDiv.className = 'correction';
+                corrDiv.innerText = "💡 " + correction;
+                msgDiv.appendChild(corrDiv);
+            }
+
+            chat.appendChild(msgDiv);
+            chat.scrollTop = chat.scrollHeight;
+        }
+    </script>
+</body>
+</html>
